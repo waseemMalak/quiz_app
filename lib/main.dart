@@ -62,13 +62,20 @@ class _QuizPageState extends State<QuizPage>
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-    _fadeAnimation =
-        Tween<double>(begin: 0.0, end: 1.0).animate(_animationController);
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.linear, // Use linear curve for continuous looping
+      ),
+    );
     _animationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         _animationController.reverse();
+      } else if (status == AnimationStatus.dismissed) {
+        _animationController.forward();
       }
     });
+    _animationController.forward(); // Start the animation
   }
 
   @override
