@@ -26,7 +26,8 @@ class QuizPage extends StatefulWidget {
   _QuizPageState createState() => _QuizPageState();
 }
 
-class _QuizPageState extends State<QuizPage> {
+class _QuizPageState extends State<QuizPage>
+    with SingleTickerProviderStateMixin {
   List<String> questions = [
     'Question 1: What is the capital of France?',
     'Question 2: Who painted the Mona Lisa?',
@@ -51,6 +52,31 @@ class _QuizPageState extends State<QuizPage> {
   int score = 0;
   int attempts = 3;
 
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _fadeAnimation =
+        Tween<double>(begin: 0.0, end: 1.0).animate(_animationController);
+    _animationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _animationController.reverse();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
   void checkAnswer(int selectedIndex) {
     int correctAnswerIndex =
         options[currentQuestionIndex].values.toList().indexOf(0);
@@ -59,77 +85,149 @@ class _QuizPageState extends State<QuizPage> {
         score++;
         currentQuestionIndex++;
       });
-      _showSnackBar('Correct answer!');
+      _showDialogWithAnimation('Correct answer!');
     } else {
       setState(() {
         attempts--;
+        if (attempts == 0) {
+          _showDialogWithAnimation('Wrong answer. No more attempts!');
+          currentQuestionIndex++;
+          attempts = 3; // Reset attempts for the next question
+        } else {
+          _showDialogWithAnimation(
+              'Wrong answer. $attempts attempts remaining.');
+        }
       });
-      if (attempts == 0) {
-        _showSnackBar('Wrong answer. No more attempts!');
-        currentQuestionIndex++;
-      } else {
-        _showSnackBar('Wrong answer. $attempts attempts remaining.');
-      }
     }
   }
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message),
-      duration: const Duration(seconds: 2),
-    ));
+  void _showDialogWithAnimation(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Text(
+                    message,
+                    style: const TextStyle(fontSize: 18),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Go To Next Question'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    _animationController.reset();
+    _animationController.forward();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.yellow[700]!, Colors.yellow[900]!],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
         title: const Text('Quiz App'),
       ),
-      body: Center(
-        child: currentQuestionIndex < questions.length
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text(
-                    questions[currentQuestionIndex],
-                    style: const TextStyle(fontSize: 20),
-                  ),
-                  const SizedBox(height: 20),
-                  Column(
-                    children: List<Widget>.generate(
-                      options[currentQuestionIndex].length,
-                      (int index) {
-                        String option =
-                            options[currentQuestionIndex].keys.toList()[index];
-                        return ElevatedButton(
-                          onPressed: () => checkAnswer(index),
-                          child: Text(option),
-                        );
-                      },
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Colors.black87,
+              Colors.grey,
+              const Color(0xFFFFD700)
+            ], // Black, Gray, Gold
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Center(
+          child: currentQuestionIndex < questions.length
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Text(
+                      questions[currentQuestionIndex],
+                      style:
+                          const TextStyle(fontSize: 20, color: Colors.yellow),
                     ),
-                  ),
-                ],
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text(
-                    'Quiz completed!',
-                    style: const TextStyle(fontSize: 20),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Score: $score / ${questions.length}',
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: restartQuiz,
-                    child: const Text('Restart Quiz'),
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 20),
+                    Column(
+                      children: List<Widget>.generate(
+                        options[currentQuestionIndex].length,
+                        (int index) {
+                          String option = options[currentQuestionIndex]
+                              .keys
+                              .toList()[index];
+                          return ElevatedButton(
+                            onPressed: () => checkAnswer(index),
+                            style: ElevatedButton.styleFrom(
+                              primary: const Color(0xFFFFD700), // Gold color
+                            ),
+                            child: Text(
+                              option,
+                              style: const TextStyle(color: Colors.black),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Text(
+                      'Quiz completed!',
+                      style:
+                          const TextStyle(fontSize: 20, color: Colors.yellow),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Score: $score / ${questions.length}',
+                      style:
+                          const TextStyle(fontSize: 18, color: Colors.yellow),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: restartQuiz,
+                      style: ElevatedButton.styleFrom(
+                        primary: const Color(0xFFFFD700), // Gold color
+                      ),
+                      child: const Text(
+                        'Restart Quiz',
+                        style: TextStyle(color: Colors.black),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }
