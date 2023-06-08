@@ -134,8 +134,25 @@ class _QuizPageState extends State<QuizPage>
                 ElevatedButton(
                   onPressed: () {
                     Navigator.pop(context);
+                    if (message == 'Correct answer!') {
+                      setState(() {
+                        currentQuestionIndex;
+                      });
+                    } else {
+                      setState(() {
+                        attempts--;
+                        if (attempts == 0) {
+                          currentQuestionIndex++;
+                          attempts = 3; // Reset attempts for the next question
+                        }
+                      });
+                    }
                   },
-                  child: const Text('Go To Next Question'),
+                  child: Text(
+                    message == 'Correct answer!'
+                        ? 'Go To Next Question'
+                        : 'Retry Question',
+                  ),
                 ),
               ],
             ),
